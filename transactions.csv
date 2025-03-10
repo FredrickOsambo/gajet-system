@@ -1,5 +1,1 @@
-Date,Type,Item,Quantity,Price,Customer Name,Payment Mode,Expense
-2025-03-05 15:48:44.111300,Purchase,Gajet,10,0.0,,,350.0
-2025-03-05 15:49:34.334864,Sale,Gajet,12,100.0,gajet,Full,0.0
-2025-03-05 15:51:37.190383,Purchase,Gajet,50,0.0,,,1000.0
-2025-03-05 15:59:09.525587,Debt Payment,Debt Payment,1,100.0,gajet,Full,0.0
+
