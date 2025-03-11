@@ -127,7 +127,21 @@ elif page == "Inventory":
         selected_index = st.selectbox("Select Item to Delete", st.session_state.inventory.index, format_func=lambda x: st.session_state.inventory['Item'][x])
 
         if st.button("Delete Selected Item"):
+            deleted_item = st.session_state.inventory.loc[selected_index]
+
+            # Remove the item from inventory
             st.session_state.inventory = st.session_state.inventory.drop(selected_index).reset_index(drop=True)
+
+            # Find and remove related transactions
+            related_transactions = st.session_state.transactions[
+                (st.session_state.transactions['Item'] == deleted_item['Item']) &
+                (st.session_state.transactions['Type'] == 'Purchase')  # Consider other transaction types if needed
+            ]
+
+            if not related_transactions.empty:
+                # Remove related transactions from the DataFrame
+                st.session_state.transactions = st.session_state.transactions.drop(related_transactions.index).reset_index(drop=True)
+
             save_data(st.session_state.inventory, st.session_state.transactions)
             st.rerun()
 
