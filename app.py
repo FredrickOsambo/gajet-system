@@ -2,44 +2,71 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from datetime import datetime
+import sqlite3
 import os
 
-# File paths for data storage
-INVENTORY_FILE = "inventory.csv"
-TRANSACTIONS_FILE = "transactions.csv"
+# Database setup
+DATABASE_FILE = "gajet_tech.db"
 INITIAL_CAPITAL = 20000
 
-# Function to load data from CSV files
+# Function to create tables if they don't exist
+def create_tables():
+    conn = sqlite3.connect(DATABASE_FILE)
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS inventory (
+            item_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            item_name TEXT NOT NULL UNIQUE,
+            quantity INTEGER,
+            cost_per_unit REAL,
+            selling_price REAL
+        )
+    ''')
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS transactions (
+            transaction_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            date TEXT,
+            type TEXT,
+            item_name TEXT,
+            quantity INTEGER,
+            price REAL,
+            customer_name TEXT,
+            payment_mode TEXT,
+            expense REAL
+        )
+    ''')
+
+    conn.commit()
+    conn.close()
+
+create_tables()
+
+# Function to load data from SQLite
 def load_data():
-    if os.path.exists(INVENTORY_FILE):
-        inventory = pd.read_csv(INVENTORY_FILE)
-    else:
-        inventory = pd.DataFrame(
-            columns=['Item', 'Quantity', 'Cost Per Unit', 'Selling Price']
-        )
-
-    if os.path.exists(TRANSACTIONS_FILE):
-        transactions = pd.read_csv(TRANSACTIONS_FILE)
+    try:
+        conn = sqlite3.connect(DATABASE_FILE)
+        inventory = pd.read_sql_query("SELECT item_name AS Item, quantity AS Quantity, cost_per_unit AS 'Cost Per Unit', selling_price AS 'Selling Price' FROM inventory", conn)
+        transactions = pd.read_sql_query("SELECT date AS Date, type AS Type, item_name AS Item, quantity AS Quantity, price AS Price, customer_name AS 'Customer Name', payment_mode AS 'Payment Mode', expense AS Expense FROM transactions", conn)
         transactions['Date'] = pd.to_datetime(transactions['Date'])
-    else:
-        transactions = pd.DataFrame(
-            columns=[
-                'Date',
-                'Type',
-                'Item',
-                'Quantity',
-                'Price',
-                'Customer Name',
-                'Payment Mode',
-                'Expense',
-            ]
-        )
-    return inventory, transactions
+        conn.close()
+        return inventory, transactions
+    except Exception as e:
+        st.error(f"Error loading data: {e}")
+        return pd.DataFrame(columns=['Item', 'Quantity', 'Cost Per Unit', 'Selling Price']), pd.DataFrame(columns=['Date', 'Type', 'Item', 'Quantity', 'Price', 'Customer Name', 'Payment Mode', 'Expense'])
 
-# Function to save data to CSV files
+# Function to save data to SQLite
 def save_data(inventory, transactions):
-    inventory.to_csv(INVENTORY_FILE, index=False)
-    transactions.to_csv(TRANSACTIONS_FILE, index=False)
+    try:
+        conn = sqlite3.connect(DATABASE_FILE)
+        inventory.rename(columns={'Item': 'item_name', 'Quantity': 'quantity', 'Cost Per Unit': 'cost_per_unit', 'Selling Price': 'selling_price'}, inplace=True)
+        transactions.rename(columns={'Date': 'date', 'Type': 'type', 'Item': 'item_name', 'Quantity': 'quantity', 'Price': 'price', 'Customer Name': 'customer_name', 'Payment Mode': 'payment_mode', 'Expense': 'expense'}, inplace=True)
+        inventory.to_sql("inventory", conn, if_exists="replace", index=False)
+        transactions.to_sql("transactions", conn, if_exists="replace", index=False)
+        conn.close()
+    except Exception as e:
+        st.error(f"Error saving data: {e}")
 
 # Load data on app start
 if 'inventory' not in st.session_state:
@@ -47,9 +74,7 @@ if 'inventory' not in st.session_state:
 
 # Sidebar for page selection
 st.sidebar.title("Gajet Tech App")
-page = st.sidebar.selectbox(
-    "Select Page", ["Landing", "Inventory", "Transactions", "Debt Management"]
-)
+page = st.sidebar.selectbox("Select Page", ["Landing", "Inventory", "Transactions", "Debt Management"])
 
 # Landing Page
 if page == "Landing":
