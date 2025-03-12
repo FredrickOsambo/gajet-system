@@ -67,7 +67,6 @@ def save_data(inventory, transactions):
         conn.close()
     except Exception as e:
         st.error(f"Error saving data: {e}")
-
 # Load data on app start
 if 'inventory' not in st.session_state:
     st.session_state.inventory, st.session_state.transactions = load_data()
