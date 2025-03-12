@@ -1,6 +1,3 @@
 streamlit
 pandas
 plotly.express
-numpy
-requests
-sqlite3
